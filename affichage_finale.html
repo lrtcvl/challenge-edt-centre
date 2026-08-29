@@ -23,8 +23,15 @@
             border-radius: 14px;
             font-weight: 800;
             font-size: 1.2rem;
-            margin: 24px 0 14px 0;
+            margin: 24px 0 6px 0;
             text-align: center;
+        }
+
+        .phase-subtitle {
+            text-align: center;
+            font-size: .85rem;
+            color: var(--text-light);
+            margin-bottom: 14px;
         }
 
         .discipline-section {
@@ -108,8 +115,10 @@
             <img src="logo.png" alt="" style="height:65px; visibility:hidden;">
         </header>
 
-        <div class="phase-banner">🏅 Qualification (matin) — les 8 meilleur·e·s de chaque catégorie accèdent à la finale
-        </div>
+        <div class="phase-banner">🏅 Qualification (matin)</div>
+        <div class="phase-subtitle">Les 15 meilleur·e·s de chaque catégorie mixte (Poussins, Benjamins, Minimes), ayant
+            disputé au moins 3 manches, sont qualifié·e·s pour la Finale — les 8 meilleur·e·s accèdent ensuite à la
+            Finale de l'après-midi.</div>
         <div id="qualifContainer">
             <div class="no-data">Chargement...</div>
         </div>
@@ -157,22 +166,10 @@
                 const tree = groupByCategory(discList);
                 Object.keys(tree).sort().forEach(cat => {
                     const ranked = assignRanks(sortShooters(tree[cat]));
-                    html += `
-                        <div class="category-block">
-                            <div class="category-title">${categoryLabel(cat)}</div>
-                            <div class="table-scroll">
-                                <table>
-                                    <thead>
-                                        <tr>
-                                            <th style="width:50px;">Pl.</th>
-                                            <th>Nom Prénom</th>
-                                            <th>Club</th>
-                                            <th style="text-align:center;">Séries</th>
-                                            <th style="text-align:right;">Total</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                    `;
+                    html += `<div class="category-block"><div class="category-title">${categoryLabel(cat)}</div>
+        <div class="table-scroll"><table><thead><tr>
+        <th style="width:50px;">Pl.</th><th>Nom Prénom</th><th>Club</th><th style="text-align:center;">Séries</th><th style="text-align:right;">Total</th>
+        </tr></thead><tbody>`;
                     ranked.forEach(s => {
                         const status = s.status || 'OK';
                         const hr = hasResult(status);
@@ -180,15 +177,13 @@
                         const displayScore = hr ? Math.round((s.score || 0) * 10) / 10 : '-';
                         const series = hr ? (s.series || []) : [];
                         const qualifiedClass = (highlightTop8 && typeof s.displayRank === 'number' && s.displayRank <= 8) ? 'qualified-row' : '';
-                        html += `
-                            <tr class="${qualifiedClass}">
-                                <td class="rank-cell">${s.displayRank}</td>
-                                <td class="name-cell">${medal}${s.lastName} ${s.firstName}</td>
-                                <td>${s.club || '-'}</td>
-                                <td style="text-align:center;">${series.map(v => `<span class="series-badge">${Math.round(v * 10) / 10}</span>`).join('')}</td>
-                                <td class="score-cell">${displayScore}</td>
-                            </tr>
-                            `;
+                        html += `<tr class="${qualifiedClass}">
+          <td class="rank-cell">${s.displayRank}</td>
+          <td class="name-cell">${medal}${s.lastName} ${s.firstName}</td>
+          <td>${s.club || '-'}</td>
+          <td style="text-align:center;">${series.map(v => `<span class="series-badge">${Math.round(v * 10) / 10}</span>`).join('')}</td>
+          <td class="score-cell">${displayScore}</td>
+        </tr>`;
                     });
                     html += `</tbody></table></div></div>`;
                 });

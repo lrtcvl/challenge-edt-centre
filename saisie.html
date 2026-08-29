@@ -117,7 +117,9 @@
                     Colonnes attendues (séparateur <b>;</b>) :
                     <code>NOM;PRENOM;LICENCE;ASSOCIATION NOM;CATÉGORIE E;EPREUVE;PLACE;SÉRIE 1;SÉRIE 2;SÉRIE 3;SÉRIE 4;NOMBRE MOUCHES</code><br>
                     EPREUVE doit commencer par <b>150</b> (Pistolet) ou <b>154</b> (Carabine). Le classement Combiné
-                    150/154 est calculé automatiquement.
+                    150/154 est calculé automatiquement.<br>
+                    La catégorie brute ISISWEB (PF/PG/BF/BG/MF/MG) est conservée en base ; les classements affichés
+                    regroupent automatiquement Filles et Garçons (Poussins / Benjamins / Minimes).
                 </p>
                 <input type="file" id="csvFileInput" accept=".csv">
                 <button class="btn" onclick="triggerCSVImport()">🚀 Importer</button>
@@ -133,7 +135,7 @@
                 <input type="text" id="newNom" placeholder="NOM" style="width:130px;">
                 <input type="text" id="newPrenom" placeholder="Prénom" style="width:130px;">
                 <input type="text" id="newClub" placeholder="Club" style="width:140px;">
-                <select id="newCategorie">${''}</select>
+                <select id="newCategorie"></select>
                 <select id="newDiscipline"></select>
                 <button class="btn" onclick="addShooter()">+ Ajouter</button>
             </div>
@@ -162,7 +164,10 @@
         const etapeKey = urlParams.get('etape');
         const etapeRef = db.ref(`${ROOT}/${seasonKey}/etapes/${etapeKey}`);
 
-        document.getElementById('newCategorie').innerHTML = CATEGORIES.map(c => `<option value="${c.code}">${c.code} — ${c.label}</option>`).join('');
+        // La saisie manuelle et l'import CSV utilisent les catégories BRUTES
+        // ISISWEB (PF/PG/BF/BG/MF/MG) ; le regroupement mixte (Poussins/Benjamins/
+        // Minimes) est fait automatiquement à l'affichage et dans les classements.
+        document.getElementById('newCategorie').innerHTML = RAW_CATEGORIES.map(c => `<option value="${c.code}">${c.code} — ${c.label}</option>`).join('');
         document.getElementById('newDiscipline').innerHTML = DISCIPLINES.map(d => `<option value="${d.key}">${d.label}</option>`).join('');
 
         const auth = firebase.auth();
@@ -299,7 +304,7 @@
                     const disc = detectDiscipline(epreuve);
                     if (!disc) continue; // épreuve hors programme (ni 150 ni 154)
 
-                    const category = normalizeCategoryCode(rawCat);
+                    const category = normalizeCategoryCode(rawCat); // catégorie brute ISISWEB conservée telle quelle
                     let status = "OK";
                     if (['DNS', 'DSQ', 'HM', 'DNF'].includes(placeStr)) status = placeStr;
 

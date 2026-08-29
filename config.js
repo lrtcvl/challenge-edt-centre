@@ -35,8 +35,14 @@ firebase.initializeApp(CONFIG.firebase);
 const db = firebase.database();
 const ROOT = 'seasons';
 
-// ─── Catégories d'âge gérées par le règlement École de Tir ───────────────
-const CATEGORIES = [
+// ─── Catégories d'âge ──────────────────────────────────────────────────
+// Le règlement prévoit des classements MIXTES
+// (Filles et Garçons ensemble) : Poussins, Benjamins, Minimes.
+// ISISWEB continue toutefois d'exporter des codes bruts séparés par sexe
+// (PF, PG, BF, BG, MF, MG) : on les conserve tels quels en base (utile pour
+// la saisie/l'admin) et on les regroupe automatiquement à l'affichage et
+// dans tous les classements via mergedCategoryCode().
+const RAW_CATEGORIES = [
   { code: "PF", label: "Poussines" },
   { code: "PG", label: "Poussins" },
   { code: "BF", label: "Benjamines" },
@@ -44,8 +50,27 @@ const CATEGORIES = [
   { code: "MF", label: "Minimes Filles" },
   { code: "MG", label: "Minimes Garçons" }
 ];
+
+// Catégories de CLASSEMENT (mixtes) — utilisées par tous les regroupements,
+// filtres et affichages de résultats.
+const CATEGORIES = [
+  { code: "P", label: "Poussins" },
+  { code: "B", label: "Benjamins" },
+  { code: "M", label: "Minimes" }
+];
+
+// Convertit un code catégorie brut (PF/PG/BF/BG/MF/MG) — ou déjà mixte
+// (P/B/M) — en code de classement mixte P / B / M.
+function mergedCategoryCode(raw) {
+  const code = (raw || '').trim().toUpperCase();
+  if (!code) return code;
+  const first = code[0];
+  return ['P', 'B', 'M'].includes(first) ? first : code;
+}
+
 function categoryLabel(code) {
-  const c = CATEGORIES.find(c => c.code === (code || '').toUpperCase());
+  const merged = mergedCategoryCode(code);
+  const c = CATEGORIES.find(c => c.code === merged);
   return c ? c.label : (code || 'Catégorie inconnue');
 }
 

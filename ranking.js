@@ -46,11 +46,13 @@ function assignRanks(sorted) {
     });
 }
 
-// Regroupe une liste de tireurs (shooters d'une étape) par catégorie.
+// Regroupe une liste de tireurs (shooters d'une étape) par catégorie de
+// CLASSEMENT mixte (Poussins / Benjamins / Minimes), quelle que soit la
+// catégorie brute (PF/PG/BF/BG/MF/MG) enregistrée en base.
 function groupByCategory(shooters) {
     const tree = {};
     shooters.forEach(s => {
-        const cat = normalizeCategoryCode(s.category);
+        const cat = mergedCategoryCode(s.category);
         if (!tree[cat]) tree[cat] = [];
         tree[cat].push(s);
     });
@@ -99,6 +101,7 @@ function computeCombineForEtape(shootersByDiscipline) {
 // (pistolet / carabine / combine), à partir des étapes "etape" (E1..E6,
 // la Finale est exclue du classement général du challenge).
 // etapesData = [{ key, order, name, shootersRaw }] déjà triées par ordre.
+// Le regroupement se fait par catégorie de CLASSEMENT mixte (P/B/M).
 // Retourne : { [catCode]: [ { licence, lastName, firstName, club, scoresByEtape:[...], best3Avg, nbParticipations } ] }
 function buildGeneralRanking(etapesData, disciplineKey) {
     const perLicence = {}; // licence -> { info, scores: { etapeKey: score|null } }
@@ -115,7 +118,7 @@ function buildGeneralRanking(etapesData, disciplineKey) {
             if (!perLicence[s.licence]) {
                 perLicence[s.licence] = {
                     licence: s.licence, lastName: s.lastName, firstName: s.firstName,
-                    club: s.club, category: normalizeCategoryCode(s.category),
+                    club: s.club, category: mergedCategoryCode(s.category),
                     scores: {}
                 };
             }
@@ -125,7 +128,7 @@ function buildGeneralRanking(etapesData, disciplineKey) {
             perLicence[s.licence].lastName = s.lastName;
             perLicence[s.licence].firstName = s.firstName;
             perLicence[s.licence].club = s.club;
-            perLicence[s.licence].category = normalizeCategoryCode(s.category);
+            perLicence[s.licence].category = mergedCategoryCode(s.category);
         });
     });
 

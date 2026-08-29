@@ -119,7 +119,8 @@
         document.getElementById('challengeSub').textContent = CONFIG.challengeName;
         document.getElementById('printTitle').textContent = CONFIG.challengeName;
 
-        document.getElementById('catSelect').innerHTML = '<option value="ALL">Toutes</option>' + CATEGORIES.map(c => `<option value="${c.code}">${c.label} (${c.code})</option>`).join('');
+        // Catégories de classement mixtes (Poussins/Benjamins/Minimes)
+        document.getElementById('catSelect').innerHTML = '<option value="ALL">Toutes</option>' + CATEGORIES.map(c => `<option value="${c.code}">${c.label}</option>`).join('');
         document.getElementById('discSelect').innerHTML = DISCIPLINES.map(d => `<option value="${d.key}">${d.label}</option>`).join('') + `<option value="${COMBINE.key}">${COMBINE.label}</option>`;
 
         let seasonsCache = {};
@@ -189,12 +190,13 @@
                 const etapes = getEtapesOfType('etape').concat(getEtapesOfType('finale'));
                 const etape = etapes.find(e => e.key === etapeKey);
                 if (!etape) { area.innerHTML = '<div class="no-data">Étape introuvable.</div>'; return; }
+
                 const etapeLocParts = [etape.department ? `Dépt. ${etape.department}` : '', etape.location || ''].filter(Boolean);
                 const etapeLocLabel = etapeLocParts.join(' — ');
-                document.getElementById('printMeta').textContent = `${(seasonsCache[currentSeason].config?.label)||currentSeason} — ${etape.name}${etapeLocLabel ? ' — ' + etapeLocLabel : ''}`;
+                document.getElementById('printMeta').textContent = `${(seasonsCache[currentSeason].config?.label) || currentSeason} — ${etape.name}${etapeLocLabel ? ' — ' + etapeLocLabel : ''}`;
 
                 document.getElementById('pdfEtapeLinks').insertAdjacentHTML('beforebegin',
-                etapeLocLabel ? `<p id="etapeLocLine" style="font-weight:700; color:var(--primary-dark); margin:0 0 8px 0;">📍 ${etapeLocLabel}</p>` : ''
+                    etapeLocLabel ? `<p id="etapeLocLine" style="font-weight:700; color:var(--primary-dark); margin:0 0 8px 0;">📍 ${etapeLocLabel}</p>` : ''
                 );
 
                 // Liens PDF ISISWEB déposés
@@ -206,7 +208,7 @@
 
                 const discKey = document.getElementById('discSelect').value;
                 let list = discKey === COMBINE.key ? computeCombineForEtape(etape.shootersRaw) : (etape.shootersRaw[discKey] || []);
-                if (catFilter !== 'ALL') list = list.filter(s => normalizeCategoryCode(s.category) === catFilter);
+                if (catFilter !== 'ALL') list = list.filter(s => mergedCategoryCode(s.category) === catFilter);
                 area.innerHTML = renderEtapeTables(list, discKey === COMBINE.key);
                 return;
             }
