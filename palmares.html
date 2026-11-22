@@ -91,7 +91,7 @@
         <div class="card no-print">
             <div class="filters">
                 <label>Saison : <select id="seasonSelect" onchange="onSeasonChange()"></select></label>
-                <label>Vue : <select id="viewSelect" onchange="render()">
+                <label>Vue : <select id="viewSelect" onchange="onViewChange()">
                         <option value="general">🏆 Classement général (moyenne des 3 meilleurs)</option>
                         <option value="combine">🔗 Classement général Combiné (150/154)</option>
                         <option value="etape">📍 Par étape</option>
@@ -121,7 +121,18 @@
 
         // Catégories de classement mixtes (Poussins/Benjamins/Minimes)
         document.getElementById('catSelect').innerHTML = '<option value="ALL">Toutes</option>' + CATEGORIES.map(c => `<option value="${c.code}">${c.label}</option>`).join('');
-        document.getElementById('discSelect').innerHTML = DISCIPLINES.map(d => `<option value="${d.key}">${d.label}</option>`).join('') + `<option value="${COMBINE.key}">${COMBINE.label}</option>`;
+
+        // Le "Combiné EDT" n'est proposé que dans la vue "Par étape" : il n'a pas
+        // sa place dans la vue "Classement général" (qui a sa propre vue Combiné).
+        function updateDiscOptions() {
+            const sel = document.getElementById('discSelect');
+            const previous = sel.value;
+            const withCombine = document.getElementById('viewSelect').value === 'etape';
+            sel.innerHTML = DISCIPLINES.map(d => `<option value="${d.key}">${d.label}</option>`).join('')
+                + (withCombine ? `<option value="${COMBINE.key}">${COMBINE.label}</option>` : '');
+            if ([...sel.options].some(o => o.value === previous)) sel.value = previous;
+        }
+        updateDiscOptions();
 
         let seasonsCache = {};
         let currentSeason = null;
@@ -146,11 +157,13 @@
             document.getElementById('etapeSelect').innerHTML = keys.map(k => `<option value="${k}">${etapes[k].config?.name || k}</option>`).join('');
         }
 
-        document.getElementById('viewSelect').addEventListener('change', () => {
+        function onViewChange() {
             const v = document.getElementById('viewSelect').value;
             document.getElementById('etapeSelectWrap').style.display = (v === 'etape') ? 'inline' : 'none';
             document.getElementById('discSelect').closest('label').style.display = (v === 'combine') ? 'none' : 'inline';
-        });
+            updateDiscOptions();
+            render();
+        }
 
         function getEtapesOfType(type) {
             if (!currentSeason || !seasonsCache[currentSeason]) return [];
@@ -220,7 +233,7 @@
                 const ranking = buildGeneralRanking(etapesData, COMBINE.key);
                 area.innerHTML = renderGeneralTables(ranking, etapesData, catFilter, true);
             } else {
-                const discKey = document.getElementById('discSelect').value === COMBINE.key ? 'pistolet' : document.getElementById('discSelect').value;
+                const discKey = document.getElementById('discSelect').value;
                 const ranking = buildGeneralRanking(etapesData, discKey);
                 area.innerHTML = renderGeneralTables(ranking, etapesData, catFilter, false);
             }

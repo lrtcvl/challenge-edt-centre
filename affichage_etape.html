@@ -93,9 +93,6 @@
         }
 
         .info-btn {
-            position: fixed;
-            bottom: 22px;
-            right: 22px;
             width: 44px;
             height: 44px;
             background: var(--primary);
@@ -109,6 +106,156 @@
 
         .speed-slider {
             width: 100%;
+        }
+
+        /* ---------- Boutons flottants (impression + réglages) ---------- */
+        .fab-group {
+            position: fixed;
+            bottom: 22px;
+            right: 22px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .print-page-header {
+            display: none;
+        }
+
+        /* ---------- Impression : 1 épreuve = 1 page A4, contenu ajusté ----------
+           Les règles visuelles sont portées par body.print-mode (activé par
+           enterPrintMode() juste avant l'impression) afin que la taille du
+           contenu puisse être mesurée à l'écran avec exactement la même mise
+           en page que sur le papier. */
+        @page {
+            size: A4 portrait;
+            margin: 10mm;
+        }
+
+        body.print-mode {
+            background: #fff;
+            padding: 0;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        body.print-mode .container {
+            width: 189mm;
+            max-width: none;
+            margin: 0;
+        }
+
+        body.print-mode header.top,
+        body.print-mode .no-print {
+            display: none !important;
+        }
+
+        body.print-mode .discipline-section {
+            --pfs: 14px;
+            font-size: var(--pfs);
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            border: none;
+            border-radius: 0;
+            box-shadow: none;
+            break-inside: avoid;
+            page-break-inside: avoid;
+            break-after: page;
+            page-break-after: always;
+        }
+
+        body.print-mode .discipline-section:last-child {
+            break-after: auto;
+            page-break-after: auto;
+        }
+
+        body.print-mode .print-page-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: .6em;
+            background: var(--primary);
+            color: #fff;
+            border-radius: 1em;
+            padding: .8em 1.4em;
+            margin-bottom: 1.2em;
+        }
+
+        body.print-mode .print-page-header img {
+            height: 4em;
+        }
+
+        body.print-mode .print-page-header .pph-text {
+            flex: 1;
+            text-align: center;
+        }
+
+        body.print-mode .print-page-header .pph-title {
+            font-size: 1.6em;
+            font-weight: 800;
+        }
+
+        body.print-mode .print-page-header .pph-sub {
+            font-size: .85em;
+            opacity: .9;
+        }
+
+        body.print-mode .discipline-title {
+            position: static;
+            font-size: 1.4em;
+            padding: .5em .7em;
+            margin: 0 0 .8em 0;
+            box-shadow: none;
+        }
+
+        body.print-mode .category-block {
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+
+        body.print-mode .category-title {
+            position: static;
+            font-size: 1em;
+            padding: .35em .8em;
+            margin-bottom: .5em;
+            box-shadow: none;
+        }
+
+        body.print-mode .table-scroll {
+            overflow: visible;
+            margin-bottom: .6em;
+        }
+
+        body.print-mode table {
+            font-size: 1em;
+        }
+
+        body.print-mode th {
+            font-size: .8em;
+            padding: .4em .6em;
+        }
+
+        body.print-mode td {
+            font-size: .95em;
+            padding: .45em .6em;
+        }
+
+        body.print-mode .rank-cell {
+            width: 3em;
+        }
+
+        body.print-mode .score-cell {
+            font-size: 1.15em;
+        }
+
+        body.print-mode .series-badge {
+            font-size: .85em;
+            padding: .1em .4em;
+            margin: 0 .15em;
+        }
+
+        body.print-mode .no-data {
+            padding: 1em;
         }
 
         @media (max-width:900px) {
@@ -145,7 +292,12 @@
         </div>
     </div>
 
-    <button class="info-btn no-print" onclick="document.getElementById('infoModal').classList.add('active')">ⓘ</button>
+    <div class="fab-group no-print">
+        <button class="info-btn" title="Imprimer le palmarès" aria-label="Imprimer le palmarès"
+            onclick="printResults()">🖨️</button>
+        <button class="info-btn" title="Réglages" aria-label="Réglages"
+            onclick="document.getElementById('infoModal').classList.add('active')">ⓘ</button>
+    </div>
     <div class="modal-overlay no-print" id="infoModal">
         <div class="modal-content">
             <h3>Réglages</h3>
@@ -161,6 +313,11 @@
     <script src="config.js"></script>
     <script src="ranking.js"></script>
     <script>
+        // Constantes liées à l'impression (déclarées en premier : utilisées par le rendu)
+        const PRINT_HEADER_PLACEHOLDER = '<div class="print-page-header"></div>';
+        const PRINT_PAGE_HEIGHT_PX = 270 * 96 / 25.4; // zone utile A4 (297mm - marges) avec petite réserve
+        let savedScrollY = 0;
+
         const urlParams = new URLSearchParams(location.search);
         const seasonKey = urlParams.get('season');
         const etapeKey = urlParams.get('etape');
@@ -217,7 +374,7 @@
 
             let html = '';
             DISCIPLINES.forEach(disc => {
-                html += `<div class="discipline-section"><h2 class="discipline-title">${disc.label}</h2>`;
+                html += `<div class="discipline-section">${PRINT_HEADER_PLACEHOLDER}<h2 class="discipline-title">${disc.label}</h2>`;
                 html += renderCategoryTables(shootersByDiscipline[disc.key]);
                 html += `</div>`;
             });
@@ -225,7 +382,7 @@
             // Combiné (calculé automatiquement)
             const combineList = computeCombineForEtape(shootersByDiscipline);
             if (combineList.length > 0) {
-                html += `<div class="discipline-section"><h2 class="discipline-title">${COMBINE.label}</h2>`;
+                html += `<div class="discipline-section">${PRINT_HEADER_PLACEHOLDER}<h2 class="discipline-title">${COMBINE.label}</h2>`;
                 html += renderCategoryTables(combineList, true);
                 html += `</div>`;
             }
@@ -271,6 +428,58 @@
             });
             return html;
         }
+
+        // ─── Impression du palmarès : 1 épreuve par page A4, ajustée à la page ───
+        function printHeaderHTML() {
+            const title = document.getElementById('compTitle').textContent;
+            const loc = document.getElementById('etapeLocation').textContent;
+            const sub = document.getElementById('challengeSub').textContent;
+            return `<img src="logo.png" alt="Logo">
+                <div class="pph-text"><div class="pph-title">${title}</div>
+                ${loc ? `<div class="pph-sub" style="font-weight:700;">${loc}</div>` : ''}
+                <div class="pph-sub">${sub}</div></div>
+                <img src="logo.png" alt="" style="visibility:hidden;">`;
+        }
+
+        // Réduit la taille de police de chaque épreuve jusqu'à ce qu'elle tienne sur une page.
+        function fitSectionsToPage() {
+            document.querySelectorAll('.discipline-section').forEach(sec => {
+                let lo = 4, hi = 14; // px
+                sec.style.setProperty('--pfs', hi + 'px');
+                if (sec.getBoundingClientRect().height <= PRINT_PAGE_HEIGHT_PX) return;
+                for (let i = 0; i < 12; i++) {
+                    const mid = (lo + hi) / 2;
+                    sec.style.setProperty('--pfs', mid + 'px');
+                    if (sec.getBoundingClientRect().height <= PRINT_PAGE_HEIGHT_PX) lo = mid; else hi = mid;
+                }
+                sec.style.setProperty('--pfs', lo + 'px');
+            });
+        }
+
+        function enterPrintMode() {
+            if (document.body.classList.contains('print-mode')) return;
+            savedScrollY = window.scrollY;
+            const headerHtml = printHeaderHTML();
+            document.querySelectorAll('.print-page-header').forEach(h => { h.innerHTML = headerHtml; });
+            document.body.classList.add('print-mode');
+            fitSectionsToPage();
+        }
+
+        function exitPrintMode() {
+            document.body.classList.remove('print-mode');
+            document.querySelectorAll('.discipline-section').forEach(sec => sec.style.removeProperty('--pfs'));
+            window.scrollTo(0, savedScrollY);
+            requestAnimationFrame(updateStickyOffsets);
+        }
+
+        function printResults() {
+            enterPrintMode();
+            window.print();
+        }
+
+        // Couvre aussi Ctrl+P / menu du navigateur.
+        window.addEventListener('beforeprint', enterPrintMode);
+        window.addEventListener('afterprint', exitPrintMode);
 
         let scrollIntervalId;
         let isScrolling = true;
